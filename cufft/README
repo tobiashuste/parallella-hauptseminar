@@ -1,0 +1,4 @@
+transforms image into frequency domain and immediately transforms it back
+
+1. "make" to build the project
+2. "./fft" to run project with included test image
