@@ -1,4 +1,10 @@
 transforms image into frequency domain and immediately transforms it back
 
-1. "make" to build the project
-2. "./fft" to run project with included test image
+Makefile written for taurus:
+
+1. module load gcc/4.8.2
+2. module load cuda
+3. "make" to build the project
+4. salloc --ntasks=1 --time=1:00:00 --gres=gpu:1 
+5. srun --pty bash -l -i
+6. ./fft
