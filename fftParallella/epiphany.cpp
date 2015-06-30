@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include <math.h>
 
@@ -35,9 +36,10 @@ int main(){
 
 	const uint32_t nn = *(uint32_t*) 0x40;
 	const uint32_t inverse = *(uint32_t*) 0x44;
+	
 
 	fft(nn, inverse);	
-	
+
 	fft(nn, -1);
 	
 	normalize(nn);
