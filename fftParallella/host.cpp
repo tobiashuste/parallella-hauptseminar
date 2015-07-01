@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <libgen.h>
+#include <time.h>
 
 #include <unistd.h>
 #include <assert.h>
@@ -10,6 +11,8 @@
 #include <e-hal.h>
 
 #include "include/tiff_handler.h"
+
+#define BILLION 1E9
 
 enum UserInterrupt{
         NotDone = 0x0,
@@ -39,7 +42,7 @@ int main(int argc, char* argv[]){
 	printf("%f \n", img[25]);	
 
 	//Transform image to complex form
-	imgComplex = (float*)calloc(2*sizeX*sizeY, sizeof(float));
+	imgComplex = (float*)calloc(2*512*256, sizeof(float));
 	for(int i = 0; i < sizeX*sizeY; i++){
 		imgComplex[2*i] = img[i];
 	}
@@ -86,15 +89,29 @@ int main(int argc, char* argv[]){
         }
     }
 	e_start_group(&dev);
-	for(int line = 0; line < 16; line++){	
+	
+	//Zeitmessung
+	struct timespec start, end, startwrite, endwrite, startread, endread, startcalc, endcalc;
+	clock_gettime(CLOCK_REALTIME, &start);
+	double timewrite = 0, timeread = 0, timecalc = 0;
+	
+	for(int line = 0; line < 32; line++){	
 		init = UserInterrupt::Run;
+		clock_gettime(CLOCK_REALTIME, &startwrite);
 		for(unsigned int x = 0; x < platform.cols; x++){
 			for(unsigned int y = 0; y < platform.rows; y++){				
 				e_write(&dev, y, x, 0x6000, imgComplex+(x+y*platform.cols)*2*nn+line*2*nn*16, sizeof(float)*(2*nn));
+			}
+		}
+		for(unsigned int x = 0; x < platform.cols; x++){
+			for(unsigned int y = 0; y < platform.rows; y++){	
 				e_write(&dev, y, x, 0x24, &init, sizeof(init));
 			}
 		}
-
+		clock_gettime(CLOCK_REALTIME, &endwrite);
+		clock_gettime(CLOCK_REALTIME, &startcalc);
+		timewrite += (endwrite.tv_sec - startwrite.tv_sec) + (endwrite.tv_nsec - startwrite.tv_nsec)/BILLION;
+		
         //e_reset_group(&dev);
 		/*init = UserInterrupt::Run;
         for(unsigned int x = 0; x < platform.cols; x++){
@@ -104,7 +121,7 @@ int main(int argc, char* argv[]){
 		}*/
 		//start device program
 		//e_start_group(&dev);
-
+		
 		//wait until the epiphany is done
 		UserInterrupt epiphanyDone = UserInterrupt::NotDone;
 		while(epiphanyDone != UserInterrupt::Done){
@@ -112,16 +129,30 @@ int main(int argc, char* argv[]){
 			if(epiphanyDone == UserInterrupt::NotDone) 
 				usleep(1000); 
 		}
-
-		printf("1 %d\n", epiphanyDone);
+		clock_gettime(CLOCK_REALTIME, &endcalc);
+		timecalc += (endcalc.tv_sec - startcalc.tv_sec) + (endcalc.tv_nsec - startcalc.tv_nsec)/BILLION;
+		//printf("1 %d\n", epiphanyDone);
 		assert(epiphanyDone == UserInterrupt::Done);
 		
+		clock_gettime(CLOCK_REALTIME, &startread);
 		for(unsigned int x = 0; x < platform.cols; x++){
 	      		for(unsigned int y = 0; y < platform.rows; y++){
 				e_read(&dev, y, x, 0x6000, imgComplex+(x+y*platform.cols)*2*nn+line*2*nn*16, sizeof(float)*(2*nn));
 			}
 		}
+		clock_gettime(CLOCK_REALTIME, &endread);
+		timeread += (endread.tv_sec - startread.tv_sec) + (endread.tv_nsec - startread.tv_nsec)/BILLION;
 	}
+	
+	//time measurement
+	clock_gettime(CLOCK_REALTIME, &end);	
+	
+	double time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/BILLION;
+	
+	printf("Zeit Schreibvorgang: %lf s\n", timewrite);
+	printf("Zeit Lesevorgang: %lf s\n", timeread);
+	printf("Zeit Rechnen: %lf s\n", timecalc);
+	printf("Dauer Berechnung auf Epiphany: %lf s\n", time);
 	
 	uint32_t cycles, fpops;
 	e_read(&dev, 0, 0, 0x48, &cycles, sizeof(uint32_t));

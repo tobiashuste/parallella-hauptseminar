@@ -40,11 +40,12 @@ int main(){
 	while(1){
 		while(interrupt != UserInterrupt::Run)
 			interrupt = *(UserInterrupt*) 0x24;
-		fft(nn, inverse);	
-
-		fft(nn, -1);
+		
+		fft(nn, inverse);		
 		
 		normalize(nn);
+		
+		fft(nn, -1);		
 
 		uint32_t cycles = (uint32_t) e_ctimer_get(E_CTIMER_1);
 		uint32_t fpops = (uint32_t) e_ctimer_get(E_CTIMER_0);
