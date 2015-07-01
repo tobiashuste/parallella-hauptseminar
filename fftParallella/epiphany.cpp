@@ -32,11 +32,8 @@ int main(){
 	e_ctimer_start(E_CTIMER_0, E_CTIMER_FPU_INST);
 	e_ctimer_start(E_CTIMER_1, E_CTIMER_CLK);
 
-	//*(UserInterrupt*) 0x24 = UserInterrupt::Done:
-
 	const uint32_t nn = *(uint32_t*) 0x40;
 	const uint32_t inverse = *(uint32_t*) 0x44;
-	
 
 	fft(nn, inverse);	
 
@@ -51,8 +48,8 @@ int main(){
 	*(uint32_t*) 0x4C = E_CTIMER_MAX - fpops;
 
 	*(UserInterrupt*) 0x24 = UserInterrupt::Done;
-	
-	return 0;
+    
+    return 0;
 }
 
 

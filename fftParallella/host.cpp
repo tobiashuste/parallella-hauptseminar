@@ -51,44 +51,51 @@ int main(int argc, char* argv[]){
 	e_platform_t platform;
 	e_epiphany_t dev;
 
-	for(int line = 0; line < 16; line++){
-		e_init(nullptr);
-		e_reset_system();
-		e_get_platform_info(&platform);
-		
-		//start workgroup with all e-cores
-		if(e_open(&dev, 0, 0, platform.rows, platform.cols) != E_OK){
-			printf("e_open failed\n");
-			exit(1);
-		}
-   	 
-		//load epiphany program into workgroup, but don't start it yet
-		if(e_load_group(epiphanyExecutable, &dev, 0, 0, platform.rows, platform.cols, E_FALSE) == E_ERR){
-     			printf("epiphany program could not be loaded into workgroup\n");
-       		 	exit(1);
-		}
-    
-  	  	//copy data
-		int nn = 256;
-		int inverse = 1;
-		
-		/*float *dataComplex = (float*)calloc((2*nn+1), sizeof(float));
-		for(int i = 0; i < nn; i++){
-			dataComplex[2*i] = i;	
-		}*/
+	e_init(nullptr);
+	e_reset_system();
+	e_get_platform_info(&platform);
 	
+	//start workgroup with all e-cores
+	if(e_open(&dev, 0, 0, platform.rows, platform.cols) != E_OK){
+		printf("e_open failed\n");
+		exit(1);
+	}
+ 
+	//load epiphany program into workgroup, but don't start it yet
+	if(e_load_group(epiphanyExecutable, &dev, 0, 0, platform.rows, platform.cols, E_FALSE) == E_ERR){
+		printf("epiphany program could not be loaded into workgroup\n");
+	 	exit(1);
+	}
+
+  	//copy data
+	int nn = 256;
+	int inverse = 1;
+	
+	/*float *dataComplex = (float*)calloc((2*nn+1), sizeof(float));
+	for(int i = 0; i < nn; i++){
+		dataComplex[2*i] = i;	
+	}*/
+
+	for(unsigned int x = 0; x < platform.cols; x++){
+		for(unsigned int y = 0; y < platform.rows; y++){
+			e_write(&dev, y, x, 0x40, &nn, sizeof(nn));
+            e_write(&dev, y, x, 0x44, &inverse, sizeof(inverse));
+        }
+    }
+
+	for(int line = 0; line < 16; line++){
+		
 
 		UserInterrupt init = UserInterrupt::NotDone;
 		e_write(&dev, 0, 0, 0x24, &init, sizeof(init));
 		for(unsigned int x = 0; x < platform.cols; x++){
 			for(unsigned int y = 0; y < platform.rows; y++){
-				e_write(&dev, y, x, 0x40, &nn, sizeof(nn));
-				e_write(&dev, y, x, 0x44, &inverse, sizeof(inverse));
-
 				e_write(&dev, y, x, 0x6000, imgComplex+(x+y*platform.cols)*2*nn+line*2*nn*16, sizeof(float)*(2*nn));
 			}
 		}
 
+        e_reset_group(&dev);
+        
 		//start device program
 		e_start_group(&dev);
 
