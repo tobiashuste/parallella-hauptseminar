@@ -14,6 +14,7 @@ enum UserInterrupt{
         NotDone = 0x0,
         Done    = 0x1,
         Error   = 0x2,
+		Run     = 0x3,
 };
 
 
@@ -23,6 +24,8 @@ void fft(int nn, int inverse);
 void normalize(int nn);
 
 int main(){
+	
+	UserInterrupt interrupt = UserInterrupt::NotDone;
 	
 	e_irq_global_mask(E_TRUE);
 		
@@ -34,21 +37,24 @@ int main(){
 
 	const uint32_t nn = *(uint32_t*) 0x40;
 	const uint32_t inverse = *(uint32_t*) 0x44;
+	while(1){
+		while(interrupt != UserInterrupt::Run)
+			interrupt = *(UserInterrupt*) 0x24;
+		fft(nn, inverse);	
 
-	fft(nn, inverse);	
+		fft(nn, -1);
+		
+		normalize(nn);
 
-	fft(nn, -1);
-	
-	normalize(nn);
+		uint32_t cycles = (uint32_t) e_ctimer_get(E_CTIMER_1);
+		uint32_t fpops = (uint32_t) e_ctimer_get(E_CTIMER_0);
 
-	uint32_t cycles = (uint32_t) e_ctimer_get(E_CTIMER_1);
-	uint32_t fpops = (uint32_t) e_ctimer_get(E_CTIMER_0);
+		*(uint32_t*) 0x48 = E_CTIMER_MAX - cycles;
+		*(uint32_t*) 0x4C = E_CTIMER_MAX - fpops;
 
-	*(uint32_t*) 0x48 = E_CTIMER_MAX - cycles;
-	*(uint32_t*) 0x4C = E_CTIMER_MAX - fpops;
-
-	*(UserInterrupt*) 0x24 = UserInterrupt::Done;
-    
+		*(UserInterrupt*) 0x24 = UserInterrupt::Done;
+		interrupt = *(UserInterrupt*) 0x24;
+    }
     return 0;
 }
 
