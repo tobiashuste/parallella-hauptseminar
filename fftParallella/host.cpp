@@ -37,12 +37,12 @@ int main(int argc, char* argv[]){
 		sizeY = atoi(argv[3]);
 	}
 
-	img = (float*)malloc(sizeof(float)*sizeX*sizeY);
+	img = (float*)calloc(sizeX*sizeY, sizeof(float));
 	readTIFF(s, img);
 	printf("%f \n", img[25]);	
 
 	//Transform image to complex form
-	imgComplex = (float*)calloc(2*512*256, sizeof(float));
+	imgComplex = (float*)calloc(2*512*sizeX, sizeof(float));
 	for(int i = 0; i < sizeX*sizeY; i++){
 		imgComplex[2*i] = img[i];
 	}
